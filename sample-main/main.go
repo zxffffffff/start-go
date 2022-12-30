@@ -17,7 +17,7 @@ func printMsg(key string) {
 }
 
 func main() {
-	log.SetPrefix("[sample-main]: ")
+	log.SetPrefix("[log]: ")
 	log.SetFlags(0)
 
 	printMsg("test")

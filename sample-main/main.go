@@ -22,4 +22,5 @@ func main() {
 
 	printMsg("test")
 	printMsg("")
+	datacenter.GetNetMsg()
 }

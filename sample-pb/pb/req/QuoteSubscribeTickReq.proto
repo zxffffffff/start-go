@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package Quote;
+import "common/Stock.proto";
+
+option go_package = ".;pb";
+
+message SubscribeTickReq {
+  repeated Stock stockList = 1;
+}

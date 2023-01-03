@@ -1,11 +1,10 @@
-package net
+package tcp_net
 
 import (
 	"bufio"
 	"errors"
 	"fmt"
 	"net"
-	go_net "net"
 )
 
 type TcpServerState int8
@@ -43,18 +42,19 @@ func NewTcpServer(IP string, Port int) *TcpServer {
 }
 
 func (s *TcpServer) Start() {
+    fmt.Println("TcpServer Start")
 	s.StateChan <- ServerTryStart
 
 	// listen
 	go func() {
-		addr, err := go_net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%d", s.IP, s.Port))
+		addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%d", s.IP, s.Port))
 		if err != nil {
 			fmt.Println("ResolveTCPAddr err: ", err)
 			s.StateChan <- ServerStop
 			return
 		}
 
-		listener, err := go_net.ListenTCP("tcp", addr)
+		listener, err := net.ListenTCP("tcp", addr)
 		if err != nil {
 			fmt.Println("ListenTCP err: ", err)
 			s.StateChan <- ServerStop
@@ -78,19 +78,8 @@ func (s *TcpServer) Start() {
 					continue
 				}
 
-				// connection (ping pong)
-				go func() {
-                    reader := bufio.NewReader(conn)
-                    var buf[128]byte
-                    n, err := reader.Read(buf[:])
-                    if err != nil [
-                        fmt.Println("Read err: ", err)
-                    ]
-                    recv := string(buf[:n])
-                    fmt.Println("Read: ", recv)
-
-                    conn.Write([]byte(recv))
-				}()
+				// connection
+				go onConn(s, conn)
 			}
 		}()
 
@@ -106,6 +95,20 @@ func (s *TcpServer) Start() {
 }
 
 func (s *TcpServer) Stop() {
+    fmt.Println("TcpServer Stop")
 	s.StateChan <- ServerTryStop
 	s.exitChan <- struct{}{}
+}
+
+func onConn(s *TcpServer, conn *net.TCPConn) {
+	reader := bufio.NewReader(conn)
+	var buf [128]byte
+	n, err := reader.Read(buf[:])
+	if err != nil {
+		fmt.Println("Read err: ", err)
+	}
+	recv := string(buf[:n])
+	fmt.Println("Read: ", recv)
+
+	conn.Write([]byte(recv))
 }

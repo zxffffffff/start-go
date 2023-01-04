@@ -9,20 +9,12 @@ import (
 
 type TcpServerState int8
 
-const (
-	ServerStop     TcpServerState = 0
-	ServerTryStart TcpServerState = 1
-	ServerRunning  TcpServerState = 2
-	ServerTryStop  TcpServerState = 3
-)
-
 type TcpServer struct {
 	// socket addr
 	IP   string
 	Port int
 	// server control
 	exitChan  chan struct{}
-	StateChan chan TcpServerState
 }
 
 type ITcpServer interface {
@@ -36,33 +28,28 @@ func NewTcpServer(IP string, Port int) *TcpServer {
 		IP:        IP,
 		Port:      Port,
 		exitChan:  make(chan struct{}),
-		StateChan: make(chan TcpServerState),
 	}
 	return &s
 }
 
 func (s *TcpServer) Start() {
-    fmt.Println("TcpServer Start")
-	s.StateChan <- ServerTryStart
+	fmt.Println("TcpServer Start")
 
 	// listen
 	go func() {
 		addr, err := net.ResolveTCPAddr("tcp", fmt.Sprintf("%s:%d", s.IP, s.Port))
 		if err != nil {
-			fmt.Println("ResolveTCPAddr err: ", err)
-			s.StateChan <- ServerStop
+			fmt.Println("TcpServer ResolveTCPAddr err: ", err)
 			return
 		}
 
 		listener, err := net.ListenTCP("tcp", addr)
 		if err != nil {
-			fmt.Println("ListenTCP err: ", err)
-			s.StateChan <- ServerStop
+			fmt.Println("TcpServer ListenTCP err: ", err)
 			return
 		}
 
 		fmt.Println("TcpServer running: ", fmt.Sprintf("%s:%d", s.IP, s.Port))
-		s.StateChan <- ServerRunning
 
 		// accept
 		go func() {
@@ -71,15 +58,25 @@ func (s *TcpServer) Start() {
 				if err != nil {
 					if errors.Is(err, net.ErrClosed) {
 						fmt.Println("TcpServer close")
-						s.StateChan <- ServerStop
 						return
 					}
-					fmt.Println("AcceptTCP err: ", err)
+					fmt.Println("TcpServer AcceptTCP err: ", err)
 					continue
 				}
 
 				// connection
-				go onConn(s, conn)
+				go func() {
+					reader := bufio.NewReader(conn)
+					var buf [128]byte
+					n, err := reader.Read(buf[:])
+					if err != nil {
+						fmt.Println("TcpServer Read err: ", err)
+					}
+					recv := string(buf[:n])
+					fmt.Println("TcpServer Read: ", recv)
+                    // ping-pong
+					conn.Write([]byte(recv))
+				}()
 			}
 		}()
 
@@ -87,28 +84,13 @@ func (s *TcpServer) Start() {
 		case <-s.exitChan:
 			err := listener.Close()
 			if err != nil {
-				fmt.Println("Close err: ", err)
+				fmt.Println("TcpServer Close err: ", err)
 			}
-			s.StateChan <- ServerStop
 		}
 	}()
 }
 
 func (s *TcpServer) Stop() {
-    fmt.Println("TcpServer Stop")
-	s.StateChan <- ServerTryStop
+	fmt.Println("TcpServer Stop")
 	s.exitChan <- struct{}{}
-}
-
-func onConn(s *TcpServer, conn *net.TCPConn) {
-	reader := bufio.NewReader(conn)
-	var buf [128]byte
-	n, err := reader.Read(buf[:])
-	if err != nil {
-		fmt.Println("Read err: ", err)
-	}
-	recv := string(buf[:n])
-	fmt.Println("Read: ", recv)
-
-	conn.Write([]byte(recv))
 }

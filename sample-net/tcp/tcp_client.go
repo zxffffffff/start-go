@@ -1,13 +1,15 @@
 package tcp_net
 
-type TcpClientState int8
+import (
+	"bufio"
+	"fmt"
+	"net"
 
-const (
-	ClientStop     TcpClientState = 0
-	ClientTryStart TcpClientState = 1
-	ClientRunning  TcpClientState = 2
-	ClientTryStop  TcpClientState = 3
+	pb "github.com/zxffffffff/start-go/sample-pb/pb_go"
+	"google.golang.org/protobuf/proto"
 )
+
+type TcpClientState int8
 
 type TcpClient struct {
 	// socket addr
@@ -15,7 +17,6 @@ type TcpClient struct {
 	Port int
 	// Client control
 	exitChan  chan struct{}
-	StateChan chan TcpClientState
 }
 
 type ITcpClient interface {
@@ -29,15 +30,60 @@ func NewTcpClient(IP string, Port int) *TcpClient {
 		IP:        IP,
 		Port:      Port,
 		exitChan:  make(chan struct{}),
-		StateChan: make(chan TcpClientState),
 	}
 	return &c
 }
 
+// dial
 func (c *TcpClient) Start() {
+	fmt.Println("TcpClient Start")
+
+	go func() {
+		conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", c.IP, c.Port))
+		if err != nil {
+			fmt.Println("TcpClient Dial err: ", err)
+			return
+		}
+
+		// connection
+		go func() {
+			go func() {
+				req1 := pb.HeartbeatReq{
+					ReqIndex: 123,
+				}
+				buf, err := proto.Marshal(&req1)
+				if err != nil {
+					return
+				}
+				_, err = conn.Write(buf)
+				if err != nil {
+					return
+				}
+			}()
+
+			reader := bufio.NewReader(conn)
+			var buf [128]byte
+			n, err := reader.Read(buf[:])
+			if err != nil {
+				fmt.Println("TcpClient Read err: ", err)
+			}
+			recv := string(buf[:n])
+			fmt.Println("TcpClient Read: ", recv)
+            // ping-pong
+            conn.Write([]byte(recv))
+		}()
+    
+        select {
+        case <-c.exitChan:
+            err := conn.Close()
+            if err != nil {
+                fmt.Println("TcpClient Close err: ", err)
+            }
+        }
+	}()
 }
 
 func (c *TcpClient) Stop() {
-	c.StateChan <- ClientTryStop
+	fmt.Println("TcpClient Stop")
 	c.exitChan <- struct{}{}
 }

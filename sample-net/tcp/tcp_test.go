@@ -2,6 +2,7 @@ package tcp_net
 
 import (
 	"testing"
+	"time"
 )
 
 func TestGetMsg(t *testing.T) {
@@ -14,4 +15,5 @@ func TestGetMsg(t *testing.T) {
 	//if err != nil {
 	//	t.Fatalf("TestGetMsg error %q %v", msg, err)
 	//}
+	time.Sleep(time.Second * 3)
 }

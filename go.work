@@ -1,0 +1,8 @@
+go 1.19
+
+use (
+	./sample-datacenter
+	./sample-main
+	./sample-net
+	./sample-pb
+)

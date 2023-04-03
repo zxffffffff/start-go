@@ -6,13 +6,17 @@
 - BSD-3-Clause license
 - Google 开源
 
+### Go 工作区模式
+- https://go.dev/doc/tutorial/workspaces
+- 参考 `sample-workspace`，用于处理本地 module 依赖问题
+
 ## Gin 简介
 - https://github.com/gin-gonic/gin
 - MIT license
 
-## 项目配置
-- https://gin-gonic.com/zh-cn/docs/quickstart/
-
+### Gin 项目配置
+- https://gin-gonic.com/zh-cn/docs/
+- 参考 `sample-gin`
 
 ## RESTful
 - [todo]

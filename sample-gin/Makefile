@@ -6,4 +6,4 @@ deps:
 
 .PHONY: build
 build: deps
-	go build -o realtime-chat main.go rooms.go template.go
+	go build -o realtime-chat main.go server/srv.go server/rooms.go server/template.go

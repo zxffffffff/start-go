@@ -1,4 +1,4 @@
-module example
+module github.com/zxffffffff/start-go/sample-gin
 
 go 1.19
 
